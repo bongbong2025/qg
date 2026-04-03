@@ -1,0 +1,77 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              04/03/2026 23:57:53 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main.l
+                    -st) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay.h"
+   3          #include "UART.h"
+   4          #include "eeprom.h"
+   5          //宏定义 eeprom的地址
+   6          #define EEPROM_ADDR 0
+   7          
+   8          //函数声明
+   9          void show_proce(void);
+  10          
+  11          //定义储存数据的变量
+  12          unsigned char eeprom_dat;
+  13          unsigned char uart_dat;
+  14          unsigned char RI_Flag;
+  15          
+  16          void main(void)
+  17          {
+  18   1              Uart_Init();
+  19   1      
+  20   1              while(1)
+  21   1              {
+  22   2                      show_proce();
+  23   2                      Delayms(1000);
+  24   2              }
+  25   1              
+  26   1      }
+  27          
+  28          
+  29          
+  30          void UART_Routine() interrupt 4
+  31          {
+  32   1              if(RI == 1)     //串口发送判断
+  33   1              {
+  34   2                      uart_dat = SBUF;//读取串口发送的数据
+  35   2                      RI_Flag = 1;    //串口发送标志位
+  36   2                      RI = 0; //手动还原串口发送
+  37   2              }
+  38   1      }
+  39          
+  40          void show_proce(void)
+  41          {
+  42   1              unsigned char temp_dat = 0;
+  43   1              if(RI_Flag)     //串口发送数据判断标志位
+  44   1              {
+  45   2                      eeprom_write_onebyte(EEPROM_ADDR,uart_dat);     //将串口发送的数据写入eeprom
+  46   2                      temp_dat = eeprom_read_onebyte(EEPROM_ADDR);//读取eeprom中的数据
+  47   2                      eeprom_dat = temp_dat;
+  48   2                      RI_Flag = 0;    //串口发送标志位清除
+  49   2              }
+  50   1              UART_SendByte(eeprom_dat);      //发送eeprom储存的数据
+  51   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.60.7.0   MAIN                                                              04/03/2026 23:57:53 PAGE 2   
+
+   CODE SIZE        =     54    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

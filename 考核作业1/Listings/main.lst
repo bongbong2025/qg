@@ -1,0 +1,155 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              04/02/2026 13:08:45 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main.l
+                    -st) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include <INTRINS.H>
+   3          
+   4          #define MAX_TASKS 2 //表示有两个任务
+   5          #define MAX_TASK_DEP 32//表示栈的深度
+   6          
+   7          unsigned char idata task_sp[MAX_TASKS];//任务的堆栈指针（存任务的）
+   8          unsigned char idata task_stack[MAX_TASKS][MAX_TASK_DEP];//每个task任务的堆栈
+   9          unsigned char task_id;//当前任务号
+  10          
+  11          unsigned int T1Count, T2Count;
+  12          unsigned char task1_flag, task2_flag;
+  13          
+  14          void Delay1000ms(void); //延时函数  
+  15          void task_switch(void);//任务切换
+  16          void task0(void);
+  17          void task1(void);
+  18          void task_load(unsigned int fn,unsigned char tid);
+  19          void Timer0Init(void);
+  20          
+  21          void main()
+  22          {
+  23   1              Timer0Init();
+  24   1              task_load(task0,0);
+  25   1              task_load(task1,1);
+  26   1              task_id = 0;
+  27   1              SP=task_sp[0];
+  28   1      }
+  29          
+  30          void Delay1000ms()              
+  31          {
+  32   1              unsigned char i, j, k;
+  33   1      
+  34   1              _nop_();
+  35   1              i = 8;
+  36   1              j = 154;
+  37   1              k = 122;
+  38   1              do
+  39   1              {
+  40   2                      do
+  41   2                      {
+  42   3                              while (--k);
+  43   3                      } while (--j);
+  44   2              } while (--i);
+  45   1      }
+  46          
+  47          void task_switch()
+  48          {
+  49   1         task_sp[task_id]=SP;
+  50   1              
+  51   1              task_id=task_id+1;
+  52   1              if(task_id==MAX_TASKS)  //防止任务溢出，切换为任务1
+  53   1              {
+  54   2                task_id=0;
+C51 COMPILER V9.60.7.0   MAIN                                                              04/02/2026 13:08:45 PAGE 2   
+
+  55   2              }
+  56   1              SP=task_sp[task_id];
+  57   1      }
+  58          
+  59          void task0()
+  60          {
+  61   1              P1_0=0;
+  62   1        while(1)
+  63   1              {
+  64   2                      if(task1_flag)
+  65   2                      {
+  66   3                              P1_0=~P1_0;     //改变灯的状态
+  67   3                              task1_flag = 0; //标志位清零，等待下一次标志位变化
+  68   3                      }
+  69   2                      task_switch();
+  70   2              }
+  71   1      }
+  72          
+  73          void task1()
+  74          {
+  75   1              P1_7=0;
+  76   1        while(1)
+  77   1              {
+  78   2                      if(task2_flag)
+  79   2                      {
+  80   3                              P1_7=~P1_7;     //改变灯的状态
+  81   3                              task2_flag = 0; //标志位清零，等待下一次标志位变化
+  82   3                      }
+  83   2                      task_switch();
+  84   2              }
+  85   1      }
+  86                  
+  87          void task_load(unsigned int fn,unsigned char tid)
+  88          {
+  89   1        //task_sp[tid]=  task_stack[tid]+1;//跳到下一个任务
+  90   1              task_stack[tid][1] = (unsigned char)(fn >> 8); 
+  91   1              task_stack[tid][0] = (unsigned char)fn;  
+  92   1              task_sp[tid] = (unsigned char)&task_stack[tid][1];
+  93   1      }
+  94          
+  95          void Timer0Init(void)           //定时器初始化
+  96          {
+  97   1              TMOD &= 0xF0;           //设置定时器模式
+  98   1              TMOD |= 0x01;           //设置定时器模式
+  99   1              TL0 = 0x18;             //设置定时初值
+ 100   1              TH0 = 0xFC;             //设置定时初值
+ 101   1              TF0 = 0;                //清除TF0标志
+ 102   1              TR0 = 1;                //定时器0开始计时
+ 103   1              ET0 = 1;                //打开中断
+ 104   1              EA = 1;                 
+ 105   1              PT0 = 0;                //优先级配置
+ 106   1              
+ 107   1      }
+ 108          
+ 109          void Timer0_Routine() interrupt 1
+ 110          {
+ 111   1              //重新赋初始值，为了让计时器更准确的计时
+ 112   1              TL0 = 0x18;             //设置定时初值
+ 113   1              TH0 = 0xFC;             //设置定时初值
+ 114   1              T1Count ++;
+ 115   1              T2Count ++;
+ 116   1              if(T1Count >= 500)      //500毫秒改变一次标志位
+C51 COMPILER V9.60.7.0   MAIN                                                              04/02/2026 13:08:45 PAGE 3   
+
+ 117   1              {
+ 118   2                      task1_flag = 1;
+ 119   2                      T1Count = 0;
+ 120   2              }
+ 121   1              if(T2Count >= 1000)     //1s改变一次标志位
+ 122   1              {
+ 123   2                      task2_flag = 1;
+ 124   2                      T2Count = 0;
+ 125   2              }
+ 126   1                      
+ 127   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    239    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      7    ----
+   IDATA SIZE       =     66    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
